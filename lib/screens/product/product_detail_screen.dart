@@ -4,7 +4,7 @@ import '../../core/config/constants.dart';
 import '../../providers/product_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  final int productId;
+  final String productId; // MongoDB ObjectId là String
 
   const ProductDetailScreen({
     Key? key,
@@ -37,6 +37,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           if (provider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(),
+            );
+          }
+
+          if (provider.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    provider.errorMessage ?? 'Lỗi tải sản phẩm',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context
+                          .read<ProductProvider>()
+                          .fetchProductById(widget.productId);
+                    },
+                    child: const Text('Thử Lại'),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -87,7 +120,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ],
                     ),
-                    if (product.sku != null)
+                    if (product.sku != null && product.sku!.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -183,7 +216,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${product.profit.toStringAsFixed(0)}${AppConstants.currencySymbol}',
+                                  '${(product.price - product.cost).toStringAsFixed(0)}${AppConstants.currencySymbol}',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -292,7 +325,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 const SizedBox(height: 24),
 
                 // Description
-                if (product.description != null) ...[
+                if (product.description != null &&
+                    product.description!.isNotEmpty) ...[
                   const Text(
                     'Mô Tả',
                     style: TextStyle(
@@ -306,6 +340,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[700],
+                      height: 1.5,
                     ),
                   ),
                 ],

@@ -1,5 +1,3 @@
-// lib/screens/product/add_product_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/config/constants.dart';
@@ -42,40 +40,49 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      final product = Product(
-        id: 0, // API sẽ generate ID
-        name: _nameController.text.trim(),
-        category: _selectedCategory,
-        price: double.parse(_priceController.text),
-        cost: double.parse(_costController.text),
-        quantity: int.parse(_quantityController.text),
-        quantityMin: int.parse(_quantityMinController.text),
-        description: _descriptionController.text.trim(),
-        sku: _skuController.text.trim(),
-        isActive: true,
-      );
+      // Tạo Map dữ liệu sản phẩm (không cần id, MongoDB sẽ generate)
+      final productData = {
+        'name': _nameController.text.trim(),
+        'category': _selectedCategory,
+        'price': double.parse(_priceController.text),
+        'cost': double.parse(_costController.text),
+        'quantity': int.parse(_quantityController.text),
+        'quantityMin': int.parse(_quantityMinController.text),
+        'description': _descriptionController.text.trim(),
+        'sku': _skuController.text.trim(),
+        'isActive': true,
+      };
 
-      final success = await context.read<ProductProvider>().createProduct(product);
+      final success = await context
+          .read<ProductProvider>()
+          .createProduct(productData);
 
       setState(() => _isLoading = false);
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tạo sản phẩm thành công!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.read<ProductProvider>().errorMessage ?? 'Lỗi tạo sản phẩm',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tạo sản phẩm thành công!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
-            backgroundColor: Colors.red,
-          ),
-        );
+          );
+          Navigator.pop(context, true);
+        }
+      } else {
+        if (mounted) {
+          final errorMsg =
+              context.read<ProductProvider>().errorMessage ??
+                  'Lỗi tạo sản phẩm';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     }
   }
@@ -99,6 +106,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Vui lòng nhập tên sản phẩm';
+                  }
+                  if (value.length < 3) {
+                    return 'Tên sản phẩm phải có ít nhất 3 ký tự';
                   }
                   return null;
                 },
@@ -181,6 +191,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         if (double.tryParse(value) == null) {
                           return 'Giá không hợp lệ';
                         }
+                        if (double.parse(value) < 0) {
+                          return 'Giá không được âm';
+                        }
                         return null;
                       },
                       decoration: InputDecoration(
@@ -205,6 +218,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         }
                         if (double.tryParse(value) == null) {
                           return 'Giá không hợp lệ';
+                        }
+                        if (double.parse(value) < 0) {
+                          return 'Giá không được âm';
                         }
                         return null;
                       },
@@ -235,6 +251,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         if (int.tryParse(value) == null) {
                           return 'Không hợp lệ';
                         }
+                        if (int.parse(value) < 0) {
+                          return 'Số lượng không được âm';
+                        }
                         return null;
                       },
                       decoration: InputDecoration(
@@ -257,6 +276,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         }
                         if (int.tryParse(value) == null) {
                           return 'Không hợp lệ';
+                        }
+                        if (int.parse(value) < 0) {
+                          return 'Số lượng không được âm';
                         }
                         return null;
                       },
@@ -291,9 +313,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white,
-                      ),
+                      valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
                       : const Text(

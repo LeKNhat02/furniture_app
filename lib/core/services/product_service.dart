@@ -1,124 +1,78 @@
+// lib/core/services/product_service.dart
+
+import 'package:dio/dio.dart';
 import '../models/product_model.dart';
 import 'api_service.dart';
 
 class ProductService {
   final ApiService _apiService = ApiService();
+  static const String endpoint = '/products';
 
-  /// Lấy danh sách tất cả sản phẩm
-  Future<List<Product>> getAll({int page = 1, int limit = 50}) async {
+  // Lấy danh sách sản phẩm
+  Future<List<ProductModel>> getProducts({
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
     try {
       final response = await _apiService.get(
-        '/products?page=$page&limit=$limit',
+        endpoint,
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+          if (search != null) 'search': search,
+        },
       );
 
-      // Nếu response là list trực tiếp
-      if (response is List) {
-        return (response as List)
-            .map((json) => Product.fromJson(json as Map<String, dynamic>))
-            .toList();
-      }
-
-      // Nếu response có key 'data' hoặc 'items'
-      final items = response['items'] ?? response['data'] ?? response;
-      if (items is List) {
-        return (items as List)
-            .map((json) => Product.fromJson(json as Map<String, dynamic>))
-            .toList();
-      }
-
-      return [];
+      final List<dynamic> data = response.data['data'];
+      return data.map((item) => ProductModel.fromJson(item)).toList();
     } catch (e) {
-      print('Error getting products: $e');
-      throw Exception('Lỗi lấy danh sách sản phẩm: $e');
+      rethrow;
     }
   }
 
-  /// Lấy chi tiết 1 sản phẩm
-  Future<Product> getById(int id) async {
+  // Lấy chi tiết sản phẩm
+  Future<ProductModel> getProductById(String id) async {
     try {
-      final response = await _apiService.get('/products/$id');
-      return Product.fromJson(response as Map<String, dynamic>);
+      final response = await _apiService.get('$endpoint/$id');
+      return ProductModel.fromJson(response.data['data']);
     } catch (e) {
-      print('Error getting product: $e');
-      throw Exception('Lỗi lấy chi tiết sản phẩm: $e');
+      rethrow;
     }
   }
 
-  /// Tạo sản phẩm mới
-  Future<Product> create(Product product) async {
+  // Tạo sản phẩm mới
+  Future<ProductModel> createProduct(Map<String, dynamic> productData) async {
     try {
       final response = await _apiService.post(
-        '/products',
-        product.toJson(),
+        endpoint,
+        data: productData,
       );
-      return Product.fromJson(response as Map<String, dynamic>);
+      return ProductModel.fromJson(response.data['data']);
     } catch (e) {
-      print('Error creating product: $e');
-      throw Exception('Lỗi tạo sản phẩm: $e');
+      rethrow;
     }
   }
 
-  /// Cập nhật sản phẩm
-  Future<Product> update(int id, Product product) async {
+  // Cập nhật sản phẩm
+  Future<ProductModel> updateProduct(String id, Map<String, dynamic> productData) async {
     try {
       final response = await _apiService.put(
-        '/products/$id',
-        product.toJson(),
+        '$endpoint/$id',
+        data: productData,
       );
-      return Product.fromJson(response as Map<String, dynamic>);
+      return ProductModel.fromJson(response.data['data']);
     } catch (e) {
-      print('Error updating product: $e');
-      throw Exception('Lỗi cập nhật sản phẩm: $e');
+      rethrow;
     }
   }
 
-  /// Xóa sản phẩm
-  Future<void> delete(int id) async {
+  // Xóa sản phẩm
+  Future<void> deleteProduct(String id) async {
     try {
-      await _apiService.delete('/products/$id');
+      await _apiService.delete('$endpoint/$id');
     } catch (e) {
-      print('Error deleting product: $e');
-      throw Exception('Lỗi xóa sản phẩm: $e');
-    }
-  }
-
-  /// Lấy sản phẩm theo danh mục
-  Future<List<Product>> getByCategory(String category) async {
-    try {
-      final response = await _apiService.get(
-        '/products?category=$category',
-      );
-
-      final items = response['items'] ?? response['data'] ?? response;
-      if (items is List) {
-        return (items as List)
-            .map((json) => Product.fromJson(json as Map<String, dynamic>))
-            .toList();
-      }
-
-      return [];
-    } catch (e) {
-      print('Error getting products by category: $e');
-      throw Exception('Lỗi lấy sản phẩm theo danh mục: $e');
-    }
-  }
-
-  /// Lấy sản phẩm sắp hết (low stock)
-  Future<List<Product>> getLowStock() async {
-    try {
-      final response = await _apiService.get('/inventory/low-stock');
-
-      final items = response['items'] ?? response['data'] ?? response;
-      if (items is List) {
-        return (items as List)
-            .map((json) => Product.fromJson(json as Map<String, dynamic>))
-            .toList();
-      }
-
-      return [];
-    } catch (e) {
-      print('Error getting low stock products: $e');
-      throw Exception('Lỗi lấy sản phẩm sắp hết: $e');
+      rethrow;
     }
   }
 }

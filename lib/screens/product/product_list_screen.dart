@@ -16,6 +16,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Tải danh sách sản phẩm khi vào screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductProvider>().fetchProducts();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -38,8 +47,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
           // Nút low stock
           IconButton(
             icon: const Icon(Icons.warning),
+            tooltip: 'Hàng sắp hết',
             onPressed: () {
-              context.read<ProductProvider>().fetchLowStockProducts();
+              context.read<ProductProvider>().filterLowStock();
             },
           ),
         ],
@@ -59,13 +69,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => const AddProductScreen(),
             ),
           );
+          // Reload danh sách nếu có sản phẩm mới được tạo
+          if (result == true && mounted) {
+            context.read<ProductProvider>().fetchProducts();
+          }
         },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add),
@@ -80,7 +94,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
       child: TextField(
         controller: _searchController,
         onChanged: (value) {
-          context.read<ProductProvider>().search(value);
+          // Debounce search
+          context.read<ProductProvider>().searchProducts(value);
         },
         decoration: InputDecoration(
           hintText: 'Tìm kiếm sản phẩm...',
@@ -90,7 +105,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             icon: const Icon(Icons.clear),
             onPressed: () {
               _searchController.clear();
-              context.read<ProductProvider>().search('');
+              context.read<ProductProvider>().searchProducts('');
             },
           )
               : null,
@@ -247,7 +262,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
           itemCount: provider.products.length,
           itemBuilder: (context, index) {
             final product = provider.products[index];
-
             return _buildProductCard(context, product);
           },
         );
@@ -256,7 +270,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   // Product Card
-  Widget _buildProductCard(BuildContext context, product) {
+  Widget _buildProductCard(BuildContext context, dynamic product) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -370,7 +384,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         ),
                       ),
                       Text(
-                        '${product.profit.toStringAsFixed(0)}${AppConstants.currencySymbol}',
+                        '${(product.price - product.cost).toStringAsFixed(0)}${AppConstants.currencySymbol}',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -403,10 +417,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         iconSize: 20,
                         color: AppColors.primary,
                         onPressed: () {
-                          // TODO: Navigate to edit screen
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Sửa sản phẩm - Coming Soon'),
+                              content: Text('Sửa sản phẩm - Sắp có'),
                             ),
                           );
                         },
@@ -432,7 +445,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   // Stock Badge
-  Widget _buildStockBadge(product) {
+  Widget _buildStockBadge(dynamic product) {
     final isLowStock = product.isLowStock;
 
     return Container(
@@ -456,7 +469,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   // Delete Confirm Dialog
-  void _showDeleteConfirmDialog(BuildContext context, product) {
+  void _showDeleteConfirmDialog(BuildContext context, dynamic product) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -476,6 +489,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   const SnackBar(
                     content: Text('Đã xóa sản phẩm'),
                     backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
                   ),
                 );
               },

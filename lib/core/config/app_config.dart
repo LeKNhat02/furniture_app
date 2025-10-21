@@ -1,13 +1,14 @@
-
-import 'constants.dart';
+// lib/core/config/app_config.dart
 
 class AppConfig {
-  static const String apiBaseUrl = AppConstants.apiBaseUrl;
-  static const Duration apiTimeout = AppConstants.apiTimeoutDuration;
+  // Thay đổi từ localhost sang MongoDB Atlas URL
+  static const String baseUrl = 'https://your-api-domain.com/api';
+  // Hoặc nếu deploy FastAPI: https://your-app.railway.app/api
 
-  static bool get isDevelopment => true;
+  static const String mongodbUrl = 'mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/furniture_app?retryWrites=true&w=majority';
 
-  static String get baseUrl => apiBaseUrl;
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
 
-  static bool get enableLogging => isDevelopment;
+  static bool isProduction = true; // true nếu production, false nếu development
 }

@@ -1,6 +1,5 @@
-
-class Product {
-  final int id;
+class ProductModel {
+  final String id; // MongoDB ObjectId là String
   final String name;
   final String category;
   final double price;
@@ -8,10 +7,12 @@ class Product {
   final int quantity;
   final int quantityMin;
   final String? description;
-  final String? sku;
+  final String sku;
   final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
-  Product({
+  ProductModel({
     required this.id,
     required this.name,
     required this.category,
@@ -20,41 +21,94 @@ class Product {
     required this.quantity,
     required this.quantityMin,
     this.description,
-    this.sku,
+    required this.sku,
     required this.isActive,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
-    return Product(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      category: json['category'] as String,
-      price: (json['price'] as num).toDouble(),
-      cost: (json['cost'] as num).toDouble(),
-      quantity: json['quantity'] as int,
-      quantityMin: json['quantity_min'] as int? ?? 10,
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    return ProductModel(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['name'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      price: _parseDouble(json['price']),
+      cost: _parseDouble(json['cost']),
+      quantity: json['quantity'] as int? ?? 0,
+      quantityMin: json['quantityMin'] as int? ?? json['quantity_min'] as int? ?? 10,
       description: json['description'] as String?,
-      sku: json['sku'] as String?,
-      isActive: json['is_active'] as bool? ?? true,
+      sku: json['sku'] as String? ?? '',
+      isActive: json['isActive'] as bool? ?? json['is_active'] as bool? ?? true,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'].toString())
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'].toString())
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'name': name,
       'category': category,
       'price': price,
       'cost': cost,
       'quantity': quantity,
-      'quantity_min': quantityMin,
+      'quantityMin': quantityMin,
       'description': description,
       'sku': sku,
-      'is_active': isActive,
+      'isActive': isActive,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
+  // Computed properties
   double get profit => price - cost;
-
   bool get isLowStock => quantity <= quantityMin;
+
+  // Copy with method
+  ProductModel copyWith({
+    String? id,
+    String? name,
+    String? category,
+    double? price,
+    double? cost,
+    int? quantity,
+    int? quantityMin,
+    String? description,
+    String? sku,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return ProductModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      price: price ?? this.price,
+      cost: cost ?? this.cost,
+      quantity: quantity ?? this.quantity,
+      quantityMin: quantityMin ?? this.quantityMin,
+      description: description ?? this.description,
+      sku: sku ?? this.sku,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() => 'ProductModel(id: $id, name: $name, price: $price)';
+
+  // Helper function để parse double an toàn
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
 }
