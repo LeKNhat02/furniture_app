@@ -81,17 +81,25 @@ class AuthProvider extends ChangeNotifier {
         // Lấy token từ response
         _token = responseData['access_token'] ??
             responseData['token'] ??
-            responseData['data']['access_token'];
+            responseData['data']?['access_token'];
 
         if (_token == null) {
           throw Exception('Token không được trả về từ server');
         }
 
         // Lấy thông tin user
-        final userData = responseData['user'] ?? responseData['data']['user'];
+        final userData = responseData['user'] ?? responseData['data']?['user'];
 
         if (userData != null) {
           _currentUser = User.fromJson(userData);
+        }
+
+        // Kiểm tra role: chỉ cho phép admin đăng nhập vào app này
+        if (_currentUser == null || _currentUser?.role != 'admin') {
+          _isLoading = false;
+          _errorMessage = 'Tài khoản không có quyền quản trị';
+          notifyListeners();
+          return false;
         }
 
         // Lưu token vào local storage

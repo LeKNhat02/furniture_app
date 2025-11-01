@@ -3,30 +3,55 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/config/constants.dart';
+import '../../core/models/product_model.dart';
 import '../../providers/product_provider.dart';
 import 'package:image_picker/image_picker.dart';
 
-class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({Key? key}) : super(key: key);
+class EditProductScreen extends StatefulWidget {
+  final ProductModel product;
+
+  const EditProductScreen({
+    Key? key,
+    required this.product,
+  }) : super(key: key);
 
   @override
-  State<AddProductScreen> createState() => _AddProductScreenState();
+  State<EditProductScreen> createState() => _EditProductScreenState();
 }
 
-class _AddProductScreenState extends State<AddProductScreen> {
+class _EditProductScreenState extends State<EditProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _costController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _quantityMinController = TextEditingController();
-  final _skuController = TextEditingController();
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _priceController;
+  late TextEditingController _costController;
+  late TextEditingController _quantityController;
+  late TextEditingController _quantityMinController;
+  late TextEditingController _skuController;
+
+  late String _selectedCategory;
+  bool _isLoading = false;
   XFile? _pickedImage;
   final ImagePicker _imagePicker = ImagePicker();
 
-  String _selectedCategory = AppConstants.productCategories[0];
-  bool _isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo các controller với giá trị hiện tại
+    _nameController = TextEditingController(text: widget.product.name);
+    _descriptionController =
+        TextEditingController(text: widget.product.description ?? '');
+    _priceController =
+        TextEditingController(text: widget.product.price.toStringAsFixed(0));
+    _costController =
+        TextEditingController(text: widget.product.cost.toStringAsFixed(0));
+    _quantityController =
+        TextEditingController(text: widget.product.quantity.toString());
+    _quantityMinController =
+        TextEditingController(text: widget.product.quantityMin.toString());
+    _skuController = TextEditingController(text: widget.product.sku);
+    _selectedCategory = widget.product.category;
+  }
 
   @override
   void dispose() {
@@ -44,8 +69,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Tạo Map dữ liệu sản phẩm (không cần id, MongoDB sẽ generate)
-      final productData = {
+      // Chuẩn bị dữ liệu cập nhật (chỉ gửi những field cần update)
+      final updateData = {
         'name': _nameController.text.trim(),
         'category': _selectedCategory,
         'price': double.parse(_priceController.text),
@@ -54,13 +79,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'quantityMin': int.parse(_quantityMinController.text),
         'description': _descriptionController.text.trim(),
         'sku': _skuController.text.trim(),
-        'isActive': true,
         if (_pickedImage != null) 'imagePath': _pickedImage!.path,
       };
 
       final success = await context
           .read<ProductProvider>()
-          .createProduct(productData);
+          .updateProduct(widget.product.id, updateData);
 
       setState(() => _isLoading = false);
 
@@ -68,7 +92,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Tạo sản phẩm thành công!'),
+              content: Text('Cập nhật sản phẩm thành công!'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -79,7 +103,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         if (mounted) {
           final errorMsg =
               context.read<ProductProvider>().errorMessage ??
-                  'Lỗi tạo sản phẩm';
+                  'Lỗi cập nhật sản phẩm';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMsg),
@@ -101,9 +125,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // increase font sizes for better readability
+    const formFieldTextStyle = TextStyle(fontSize: 18);
+    const labelTextStyle = TextStyle(fontSize: 16);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thêm Sản Phẩm'),
+        title: Text('Chỉnh Sửa Sản Phẩm', style: TextStyle(fontSize: 20)),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -112,43 +140,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Name
-                  // Image picker preview
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      width: double.infinity,
-                      height: 160,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                        color: Colors.grey.shade50,
-                      ),
-                      child: _pickedImage == null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.camera_alt, size: 36, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('Chọn ảnh sản phẩm (bấm để chọn)'),
-                                ],
-                              ),
-                            )
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                File(_pickedImage!.path),
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                    ),
+              // Image picker preview
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                    color: Colors.grey.shade50,
                   ),
-                  const SizedBox(height: 16),
+                  child: _pickedImage == null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.camera_alt, size: 36, color: Colors.grey),
+                              SizedBox(height: 8),
+                              Text('Chọn ảnh sản phẩm (bấm để chọn)'),
+                            ],
+                          ),
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(_pickedImage!.path),
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Name
               TextFormField(
                 controller: _nameController,
+                style: formFieldTextStyle,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Vui lòng nhập tên sản phẩm';
@@ -160,6 +189,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 },
                 decoration: InputDecoration(
                   labelText: 'Tên Sản Phẩm',
+                  labelStyle: labelTextStyle,
                   hintText: 'Ví dụ: Bàn ăn gỗ',
                   prefixIcon: const Icon(Icons.shopping_bag),
                   border: OutlineInputBorder(
@@ -175,14 +205,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 onChanged: (value) {
                   setState(() => _selectedCategory = value!);
                 },
+                style: formFieldTextStyle,
                 items: AppConstants.productCategories
                     .map((cat) => DropdownMenuItem(
-                  value: cat,
-                  child: Text(cat),
-                ))
+                          value: cat,
+                          child: Text(cat, style: formFieldTextStyle),
+                        ))
                     .toList(),
                 decoration: InputDecoration(
                   labelText: 'Danh Mục',
+                  labelStyle: labelTextStyle,
                   prefixIcon: const Icon(Icons.category),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -194,9 +226,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
               // Description
               TextFormField(
                 controller: _descriptionController,
+                style: formFieldTextStyle,
                 maxLines: 3,
                 decoration: InputDecoration(
                   labelText: 'Mô Tả',
+                  labelStyle: labelTextStyle,
                   hintText: 'Nhập mô tả chi tiết về sản phẩm',
                   prefixIcon: const Icon(Icons.description),
                   border: OutlineInputBorder(
@@ -210,8 +244,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
               // SKU
               TextFormField(
                 controller: _skuController,
+                style: formFieldTextStyle,
                 decoration: InputDecoration(
                   labelText: 'SKU (Mã Sản Phẩm)',
+                  labelStyle: labelTextStyle,
                   hintText: 'Ví dụ: SKU-001',
                   prefixIcon: const Icon(Icons.qr_code),
                   border: OutlineInputBorder(
@@ -227,6 +263,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _priceController,
+                      style: formFieldTextStyle,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -244,6 +281,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Giá Bán',
+                        labelStyle: labelTextStyle,
                         prefixIcon: const Icon(Icons.attach_money),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -255,6 +293,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _costController,
+                      style: formFieldTextStyle,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -272,6 +311,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Giá Vốn',
+                        labelStyle: labelTextStyle,
                         prefixIcon: const Icon(Icons.attach_money),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -289,6 +329,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _quantityController,
+                      style: formFieldTextStyle,
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -304,6 +345,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Số Lượng',
+                        labelStyle: labelTextStyle,
                         prefixIcon: const Icon(Icons.inventory_2),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -315,6 +357,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _quantityMinController,
+                      style: formFieldTextStyle,
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -330,6 +373,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Tồn Tối Thiểu',
+                        labelStyle: labelTextStyle,
                         prefixIcon: const Icon(Icons.warning),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -355,22 +399,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                      AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white),
+                          ),
+                        )
                       : const Text(
-                    'Thêm Sản Phẩm',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                          'Cập Nhật Sản Phẩm',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -386,7 +430,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Hủy'),
+                  child: const Text('Hủy', style: TextStyle(fontSize: 18)),
                 ),
               ),
             ],
@@ -396,3 +440,4 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 }
+

@@ -44,9 +44,28 @@ class ProductService {
   // Tạo sản phẩm mới
   Future<ProductModel> createProduct(Map<String, dynamic> productData) async {
     try {
+      // Nếu có imagePath, gửi multipart/form-data
+      dynamic payload = productData;
+      if (productData.containsKey('imagePath') && productData['imagePath'] != null) {
+        final path = productData['imagePath'] as String;
+        // Xóa trường imagePath khỏi data json trước khi gửi form
+        final cleaned = Map<String, dynamic>.from(productData)..remove('imagePath');
+        final formData = FormData();
+        // Thêm các field còn lại
+        cleaned.forEach((key, value) {
+          formData.fields.add(MapEntry(key, value?.toString() ?? ''));
+        });
+
+        // Thêm file ảnh
+        final multipartFile = await MultipartFile.fromFile(path, filename: path.split('/').last);
+        formData.files.add(MapEntry('image', multipartFile));
+
+        payload = formData;
+      }
+
       final response = await _apiService.post(
         endpoint,
-        data: productData,
+        data: payload,
       );
       return ProductModel.fromJson(response.data['data']);
     } catch (e) {
@@ -57,9 +76,23 @@ class ProductService {
   // Cập nhật sản phẩm
   Future<ProductModel> updateProduct(String id, Map<String, dynamic> productData) async {
     try {
+      dynamic payload = productData;
+      if (productData.containsKey('imagePath') && productData['imagePath'] != null) {
+        final path = productData['imagePath'] as String;
+        final cleaned = Map<String, dynamic>.from(productData)..remove('imagePath');
+        final formData = FormData();
+        cleaned.forEach((key, value) {
+          formData.fields.add(MapEntry(key, value?.toString() ?? ''));
+        });
+
+        final multipartFile = await MultipartFile.fromFile(path, filename: path.split('/').last);
+        formData.files.add(MapEntry('image', multipartFile));
+        payload = formData;
+      }
+
       final response = await _apiService.put(
         '$endpoint/$id',
-        data: productData,
+        data: payload,
       );
       return ProductModel.fromJson(response.data['data']);
     } catch (e) {

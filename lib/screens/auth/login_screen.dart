@@ -74,9 +74,10 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         // Đăng nhập thất bại
         if (mounted) {
+          final error = context.read<AuthProvider>().errorMessage ?? 'Đăng nhập thất bại! Kiểm tra username/password';
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đăng nhập thất bại! Kiểm tra username/password'),
+            SnackBar(
+              content: Text(error),
               backgroundColor: Colors.red,
             ),
           );
@@ -109,8 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildLoginButton(),
                 const SizedBox(height: 16),
 
-                // Demo Account Info
-                _buildDemoInfo(),
+                // (Demo info removed)
               ],
             ),
           ),
@@ -279,66 +279,5 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Demo Account Info
-  Widget _buildDemoInfo() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.blue[200]!,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Tài Khoản Demo:',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: Colors.blue,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Text('Username: '),
-              Text(
-                'admin',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Text('Password: '),
-              Text(
-                'password123',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Hoặc thử: username: staff, password: password123',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Demo info removed: use real backend credentials for testing.
 }

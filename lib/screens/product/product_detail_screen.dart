@@ -86,6 +86,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Large image header
+                if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      product.imageUrl!,
+                      height: 220,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 220,
+                        color: Colors.grey[200],
+                        child: const Center(child: Icon(Icons.broken_image)),
+                      ),
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return SizedBox(
+                          height: 220,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: progress.expectedTotalBytes != null
+                                  ? progress.cumulativeBytesLoaded / (progress.expectedTotalBytes ?? 1)
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 16),
                 // Product Name
                 Text(
                   product.name,
@@ -120,7 +150,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ],
                     ),
-                    if (product.sku != null && product.sku!.isNotEmpty)
+                    if (product.sku.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -133,7 +163,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            product.sku!,
+                            product.sku,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,

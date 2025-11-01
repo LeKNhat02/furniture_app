@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:furniture_app/screens/product/edit_product_screen.dart';
 import 'package:provider/provider.dart';
 import '../../core/config/constants.dart';
 import '../../providers/product_provider.dart';
@@ -14,19 +17,26 @@ class ProductListScreen extends StatefulWidget {
 
 class _ProductListScreenState extends State<ProductListScreen> {
   final _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     // Tải danh sách sản phẩm khi vào screen
+    final provider = Provider.of<ProductProvider>(context, listen: false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProductProvider>().fetchProducts();
+      provider.fetchProducts();
     });
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -70,6 +80,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          // Capture provider reference before awaiting navigation to avoid using
+          // BuildContext across async gaps (fix analyzer warning).
+          final provider = Provider.of<ProductProvider>(context, listen: false);
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
@@ -78,7 +91,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           );
           // Reload danh sách nếu có sản phẩm mới được tạo
           if (result == true && mounted) {
-            context.read<ProductProvider>().fetchProducts();
+            provider.fetchProducts();
           }
         },
         backgroundColor: AppColors.primary,
@@ -95,7 +108,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
         controller: _searchController,
         onChanged: (value) {
           // Debounce search
-          context.read<ProductProvider>().searchProducts(value);
+          if (_debounce?.isActive ?? false) _debounce!.cancel();
+          _debounce = Timer(const Duration(milliseconds: 450), () {
+            if (!mounted) return;
+            context.read<ProductProvider>().searchProducts(value);
+          });
         },
         decoration: InputDecoration(
           hintText: 'Tìm kiếm sản phẩm...',
@@ -105,7 +122,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             icon: const Icon(Icons.clear),
             onPressed: () {
               _searchController.clear();
-              context.read<ProductProvider>().searchProducts('');
+              if (mounted) context.read<ProductProvider>().searchProducts('');
             },
           )
               : null,
@@ -258,15 +275,38 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
         // Product list
         return ListView.builder(
+          controller: _scrollController,
           padding: const EdgeInsets.all(16),
-          itemCount: provider.products.length,
+          itemCount: provider.products.length + (provider.isLoadingMore ? 1 : 0),
           itemBuilder: (context, index) {
-            final product = provider.products[index];
-            return _buildProductCard(context, product);
+            if (index < provider.products.length) {
+              final product = provider.products[index];
+              return _buildProductCard(context, product);
+            }
+
+            // Loading more indicator
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: CircularProgressIndicator()),
+            );
           },
         );
       },
     );
+  }
+
+  void _onScroll() {
+    final provider = context.read<ProductProvider>();
+    if (!_scrollController.hasClients) return;
+    final threshold = 200; // px before end
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final current = _scrollController.offset;
+    if (maxScroll - current <= threshold) {
+      // load next page
+      if (!provider.isLoadingMore && provider.hasMore && !provider.isLoading) {
+        provider.fetchProducts(page: provider.currentPage + 1);
+      }
+    }
   }
 
   // Product Card
@@ -291,10 +331,55 @@ class _ProductListScreenState extends State<ProductListScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row: Name and Category
+              // Header row: Image, Name and Category
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Thumbnail
+                  if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+                    Container(
+                      width: 72,
+                      height: 72,
+                      margin: const EdgeInsets.only(right: 12),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          product.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.broken_image, color: Colors.grey),
+                          ),
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  value: progress.expectedTotalBytes != null
+                                      ? progress.cumulativeBytesLoaded / (progress.expectedTotalBytes ?? 1)
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 72,
+                      height: 72,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                    ),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,6 +404,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       ],
                     ),
                   ),
+
                   // Stock Status Badge
                   _buildStockBadge(product),
                 ],
@@ -416,12 +502,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         icon: const Icon(Icons.edit),
                         iconSize: 20,
                         color: AppColors.primary,
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Sửa sản phẩm - Sắp có'),
-                            ),
+                        onPressed: () async {
+                          final provider = Provider.of<ProductProvider>(context, listen: false);
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditProductScreen(product: product)
+                            )
                           );
+                          if (result == true && mounted) {
+                            provider.fetchProducts();
+                          }
                         },
                       ),
                       // Delete button
@@ -470,28 +561,40 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   // Delete Confirm Dialog
   void _showDeleteConfirmDialog(BuildContext context, dynamic product) {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Xác Nhận Xóa'),
           content: Text('Bạn có chắc chắn muốn xóa "${product.name}"?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Hủy'),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                context.read<ProductProvider>().deleteProduct(product.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Đã xóa sản phẩm'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final success = await provider.deleteProduct(product.id);
+                if (!mounted) return;
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đã xóa sản phẩm'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(provider.errorMessage ?? 'Xóa thất bại'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
               },
               child: const Text(
                 'Xóa',

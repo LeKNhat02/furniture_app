@@ -7,6 +7,7 @@ class ProductModel {
   final int quantity;
   final int quantityMin;
   final String? description;
+  final String? imageUrl;
   final String sku;
   final bool isActive;
   final DateTime? createdAt;
@@ -21,6 +22,7 @@ class ProductModel {
     required this.quantity,
     required this.quantityMin,
     this.description,
+    this.imageUrl,
     required this.sku,
     required this.isActive,
     this.createdAt,
@@ -37,6 +39,7 @@ class ProductModel {
       quantity: json['quantity'] as int? ?? 0,
       quantityMin: json['quantityMin'] as int? ?? json['quantity_min'] as int? ?? 10,
       description: json['description'] as String?,
+  imageUrl: json['image'] as String? ?? json['imageUrl'] as String?,
       sku: json['sku'] as String? ?? '',
       isActive: json['isActive'] as bool? ?? json['is_active'] as bool? ?? true,
       createdAt: json['createdAt'] != null

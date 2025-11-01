@@ -17,6 +17,10 @@ class ProductProvider extends ChangeNotifier {
   String? _selectedCategory;
   String? _searchQuery;
   bool _showLowStockOnly = false;
+  // Pagination
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
 
   // Getters
   List<ProductModel> get products => _filteredProducts.isEmpty && _searchQuery == null && _selectedCategory == null && !_showLowStockOnly
@@ -25,28 +29,55 @@ class ProductProvider extends ChangeNotifier {
 
   ProductModel? get selectedProduct => _selectedProduct;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
+  int get currentPage => _currentPage;
   String? get errorMessage => _errorMessage;
   String? get selectedCategory => _selectedCategory;
 
   /// Lấy danh sách sản phẩm từ API
   Future<void> fetchProducts({int page = 1, int limit = 20}) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    // Prevent duplicate loads
+    if (page > 1) {
+      if (!_hasMore || _isLoadingMore) return;
+      _isLoadingMore = true;
+      notifyListeners();
+    } else {
+      if (_isLoading) return; // already loading page 1
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
-      _products = await _productService.getProducts(
+      final fetched = await _productService.getProducts(
         page: page,
         limit: limit,
+        search: _searchQuery,
       );
+
+      if (page == 1) {
+        _products = fetched;
+      } else {
+        _products.addAll(fetched);
+      }
+
       _filteredProducts = List.from(_products);
+
+      // pagination state - update currentPage only on success
+      _currentPage = page;
+      // If server returns exactly `limit` items, we assume there may be more
+      _hasMore = fetched.length == limit;
       _errorMessage = null;
     } catch (e) {
       _errorMessage = _parseError(e);
-      _products = [];
-      _filteredProducts = [];
+      if (page == 1) {
+        _products = [];
+        _filteredProducts = [];
+      }
     } finally {
       _isLoading = false;
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
@@ -147,9 +178,12 @@ class ProductProvider extends ChangeNotifier {
   }
 
   /// Tìm kiếm sản phẩm theo tên
-  void searchProducts(String query) {
+  /// Perform server-side search by resetting to page 1 and fetching
+  Future<void> searchProducts(String query) async {
     _searchQuery = query.trim();
-    _applyFilters();
+    // Reset paging and fetch page 1 from server
+    _currentPage = 1;
+    await fetchProducts(page: 1);
   }
 
   /// Lọc sản phẩm theo danh mục
@@ -178,8 +212,8 @@ class ProductProvider extends ChangeNotifier {
     _filteredProducts = _products.where((product) {
       // Lọc theo tên
       if (_searchQuery != null && _searchQuery!.isNotEmpty) {
-        final name = product.name?.toLowerCase() ?? '';
-        final sku = product.sku?.toLowerCase() ?? '';
+        final name = product.name.toLowerCase();
+        final sku = product.sku.toLowerCase();
         if (!name.contains(_searchQuery!.toLowerCase()) &&
             !sku.contains(_searchQuery!.toLowerCase())) {
           return false;
@@ -195,10 +229,7 @@ class ProductProvider extends ChangeNotifier {
 
       // Lọc hàng sắp hết
       if (_showLowStockOnly) {
-        if (product.quantity == null || product.quantityMin == null) {
-          return false;
-        }
-        if (product.quantity! >= product.quantityMin!) {
+        if (product.quantity >= product.quantityMin) {
           return false;
         }
       }
