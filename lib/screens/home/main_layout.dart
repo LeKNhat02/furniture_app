@@ -10,6 +10,7 @@ import '../inventory/inventory_list_screen.dart';
 import '../supplier/supplier_list_screen.dart';
 import '../promotion/promotion_list_screen.dart';
 import '../report/report_screen.dart';
+import '../payment/payment_list_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({Key? key}) : super(key: key);
@@ -119,7 +120,7 @@ class _MainLayoutState extends State<MainLayout> {
       case 6:
         return _buildPlaceholder(_menuItems[_currentIndex].label); // Quản Lý Người Dùng
       case 7:
-        return _buildPlaceholder(_menuItems[_currentIndex].label); // Thanh Toán Cơ Bản
+        return const PaymentListScreen();
       case 8:
         return const SupplierListScreen();
       case 9:

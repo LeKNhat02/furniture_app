@@ -1,5 +1,5 @@
 class PromotionModel {
-  final String id;
+  final String id; // ✅ String (MySQL auto-increment ID)
   final String name;
   final String? description;
   final String discountType; // 'percentage' hoặc 'fixed_amount'
@@ -53,7 +53,7 @@ class PromotionModel {
 
   factory PromotionModel.fromJson(Map<String, dynamic> json) {
     return PromotionModel(
-      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      id: _parseString(json['id'] ?? json['_id']), // ✅ Convert to String
       name: json['name'] as String? ?? '',
       description: json['description'] as String?,
       discountType: json['discount_type'] as String? ?? 'percentage',
@@ -76,9 +76,9 @@ class PromotionModel {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool includeId = false}) {
     return {
-      '_id': id,
+      if (includeId) 'id': id,
       'name': name,
       'description': description,
       'discount_type': discountType,
@@ -94,7 +94,7 @@ class PromotionModel {
   }
 
   PromotionModel copyWith({
-    String? id,
+    String? id, // ✅ Đổi thành String?
     String? name,
     String? description,
     String? discountType,
@@ -123,6 +123,16 @@ class PromotionModel {
     );
   }
 
+  /// Helper function để parse String an toàn
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is int) return value.toString();
+    if (value is double) return value.toString();
+    return value.toString();
+  }
+
+  /// Helper function để parse double an toàn
   static double _parseDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is double) return value;
@@ -133,5 +143,14 @@ class PromotionModel {
 
   @override
   String toString() => 'PromotionModel(id: $id, name: $name, discount: $discountValue)';
-}
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is PromotionModel &&
+              runtimeType == other.runtimeType &&
+              id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}

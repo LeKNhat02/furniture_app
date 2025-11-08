@@ -9,18 +9,20 @@ class AddInventoryTransactionScreen extends StatefulWidget {
   const AddInventoryTransactionScreen({Key? key}) : super(key: key);
 
   @override
-  State<AddInventoryTransactionScreen> createState() => _AddInventoryTransactionScreenState();
+  State<AddInventoryTransactionScreen> createState() =>
+      _AddInventoryTransactionScreenState();
 }
 
-class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionScreen> {
+class _AddInventoryTransactionScreenState
+    extends State<AddInventoryTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _reasonController = TextEditingController();
   final _notesController = TextEditingController();
-  
-  String? _selectedProductId;
+
+  String? _selectedProductId; // ✅ String (match với ProductModel.id)
   String _selectedType = 'in';
-  String? _selectedSupplierId;
+  String? _selectedSupplierId; // ✅ String (match với SupplierModel.id)
   bool _isLoading = false;
 
   @override
@@ -28,6 +30,7 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SupplierProvider>().fetchSuppliers();
+      context.read<ProductProvider>().fetchProducts();
     });
   }
 
@@ -43,7 +46,9 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
     if (_formKey.currentState!.validate()) {
       if (_selectedProductId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng chọn sản phẩm'), backgroundColor: Colors.red),
+          const SnackBar(
+              content: Text('Vui lòng chọn sản phẩm'),
+              backgroundColor: Colors.red),
         );
         return;
       }
@@ -51,12 +56,14 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
       setState(() => _isLoading = true);
 
       final transactionData = {
-        'product_id': _selectedProductId,
+        'product_id': _selectedProductId, // ✅ String
         'type': _selectedType,
         'quantity': int.parse(_quantityController.text),
         'reason': _reasonController.text.trim(),
-        'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-        'supplier_id': _selectedSupplierId,
+        'notes': _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+        'supplier_id': _selectedSupplierId, // ✅ String?
         'date': DateTime.now().toIso8601String(),
       };
 
@@ -67,12 +74,16 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tạo giao dịch thành công'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Tạo giao dịch thành công'),
+              backgroundColor: Colors.green),
         );
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(provider.errorMessage ?? 'Tạo giao dịch thất bại'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text(provider.errorMessage ?? 'Tạo giao dịch thất bại'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -97,11 +108,14 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
                       labelText: 'Sản Phẩm *',
                       border: OutlineInputBorder(),
                     ),
-                    items: provider.products.map((product) => DropdownMenuItem(
-                          value: product.id,
-                          child: Text(product.name),
-                        )),
-                    onChanged: (value) => setState(() => _selectedProductId = value),
+                    items: provider.products
+                        .map((product) => DropdownMenuItem(
+                      value: product.id, // ✅ product.id là String
+                      child: Text(product.name),
+                    ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedProductId = value),
                   );
                 },
               ),
@@ -130,7 +144,8 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
                   if (value == null || value.isEmpty) {
                     return 'Vui lòng nhập số lượng';
                   }
-                  if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                  if (int.tryParse(value) == null ||
+                      int.parse(value) <= 0) {
                     return 'Số lượng phải là số nguyên dương';
                   }
                   return null;
@@ -161,13 +176,16 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Không có')),
-                        ...provider.suppliers.map((supplier) => DropdownMenuItem(
-                              value: supplier.id,
-                              child: Text(supplier.name),
-                            )),
+                        const DropdownMenuItem<String?>(
+                            value: null, child: Text('Không có')),
+                        ...provider.suppliers
+                            .map((supplier) => DropdownMenuItem<String?>(
+                          value: supplier.id, // ✅ supplier.id là String
+                          child: Text(supplier.name),
+                        )),
                       ],
-                      onChanged: (value) => setState(() => _selectedSupplierId = value),
+                      onChanged: (value) =>
+                          setState(() => _selectedSupplierId = value),
                     );
                   },
                 ),
@@ -186,10 +204,13 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleSave,
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Tạo Giao Dịch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      : const Text('Tạo Giao Dịch',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -199,4 +220,3 @@ class _AddInventoryTransactionScreenState extends State<AddInventoryTransactionS
     );
   }
 }
-

@@ -4,7 +4,7 @@ import '../../core/config/constants.dart';
 import '../../providers/product_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  final String productId; // MongoDB ObjectId là String
+  final String productId; // MySQL auto-increment ID
 
   const ProductDetailScreen({
     Key? key,

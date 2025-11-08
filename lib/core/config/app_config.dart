@@ -21,9 +21,8 @@ class AppConfig {
     _overrideBaseUrl = url;
   }
 
-  // MongoDB connection string (giữ nguyên làm ví dụ). Thông thường backend sẽ dùng biến môi trường
-  // để lưu connection string; frontend không cần dùng trực tiếp.
-  static const String mongodbUrl = 'mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/furniture_app?retryWrites=true&w=majority';
+  // MySQL connection được quản lý bởi backend FastAPI
+  // Frontend chỉ cần kết nối với API endpoints
 
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

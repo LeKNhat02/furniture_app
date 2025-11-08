@@ -74,6 +74,7 @@ class ProductService {
   }
 
   // Cập nhật sản phẩm
+  /// Thống nhất sử dụng int cho id
   Future<ProductModel> updateProduct(String id, Map<String, dynamic> productData) async {
     try {
       dynamic payload = productData;
@@ -101,6 +102,7 @@ class ProductService {
   }
 
   // Xóa sản phẩm
+  /// Thống nhất sử dụng int cho id
   Future<void> deleteProduct(String id) async {
     try {
       await _apiService.delete('$endpoint/$id');

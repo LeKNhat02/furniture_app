@@ -1,5 +1,5 @@
 class CustomerModel {
-  final String id;
+  final String id; // ✅ Đổi thành String (MySQL auto-increment ID)
   final String name;
   final String phone;
   final String? email;
@@ -29,7 +29,7 @@ class CustomerModel {
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
     return CustomerModel(
-      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      id: _parseString(json['id'] ?? json['_id']), // ✅ Convert to String
       name: json['name'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String?,
@@ -48,9 +48,9 @@ class CustomerModel {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool includeId = false}) {
     return {
-      '_id': id,
+      if (includeId) 'id': id,
       'name': name,
       'phone': phone,
       'email': email,
@@ -99,11 +99,40 @@ class CustomerModel {
   String toString() =>
       'CustomerModel(id: $id, name: $name, phone: $phone, totalSpent: $totalSpent)';
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is CustomerModel &&
+              runtimeType == other.runtimeType &&
+              id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  /// Helper function để parse String an toàn
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is int) return value.toString();
+    if (value is double) return value.toString();
+    return value.toString();
+  }
+
+  /// Helper function để parse double an toàn
   static double _parseDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) return double.tryParse(value) ?? 0.0;
     return 0.0;
+  }
+
+  /// Helper function để parse int an toàn
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is double) return value.toInt();
+    return 0;
   }
 }

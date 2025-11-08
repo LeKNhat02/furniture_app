@@ -16,7 +16,7 @@ class CreateSaleScreen extends StatefulWidget {
 
 class _CreateSaleScreenState extends State<CreateSaleScreen> {
   final List<SaleItem> _items = [];
-  String? _selectedCustomerId;
+  String? _selectedCustomerId; // ✅ Đổi thành String? (match với CustomerModel.id)
   String _paymentMethod = AppConstants.paymentMethods[0];
   final _notesController = TextEditingController();
   bool _isLoading = false;
@@ -110,18 +110,18 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
   Widget _buildCustomerSelector() {
     return Consumer<CustomerProvider>(
       builder: (context, provider, _) {
-        return DropdownButtonFormField<String>(
+        return DropdownButtonFormField<String?>(
           value: _selectedCustomerId,
           decoration: const InputDecoration(
             labelText: 'Khách Hàng (Tùy chọn)',
             border: OutlineInputBorder(),
           ),
           items: [
-            const DropdownMenuItem(value: null, child: Text('Khách vãng lai')),
-            ...provider.customers.map((customer) => DropdownMenuItem(
-                  value: customer.id,
-                  child: Text('${customer.name} - ${customer.phone}'),
-                )),
+            const DropdownMenuItem<String?>(value: null, child: Text('Khách vãng lai')),
+            ...provider.customers.map((customer) => DropdownMenuItem<String?>(
+              value: customer.id, // ✅ customer.id là String
+              child: Text('${customer.name} - ${customer.phone}'),
+            )).toList(),
           ],
           onChanged: (value) => setState(() => _selectedCustomerId = value),
         );
@@ -137,9 +137,9 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
         border: OutlineInputBorder(),
       ),
       items: AppConstants.paymentMethods.map((method) => DropdownMenuItem(
-            value: method,
-            child: Text(method),
-          )),
+        value: method,
+        child: Text(method),
+      )).toList(),
       onChanged: (value) => setState(() => _paymentMethod = value!),
     );
   }
@@ -349,15 +349,15 @@ class _AddProductDialogState extends State<_AddProductDialog> {
         ElevatedButton(
           onPressed: quantity > 0 && quantity <= widget.product.quantity
               ? () {
-                  widget.onAdd(SaleItem(
-                    productId: widget.product.id,
-                    productName: widget.product.name,
-                    quantity: quantity,
-                    price: _price,
-                    discount: discount,
-                  ));
-                  Navigator.pop(context);
-                }
+            widget.onAdd(SaleItem(
+              productId: widget.product.id,
+              productName: widget.product.name,
+              quantity: quantity,
+              price: _price,
+              discount: discount,
+            ));
+            Navigator.pop(context);
+          }
               : null,
           child: const Text('Thêm'),
         ),
@@ -386,24 +386,23 @@ class _ProductPickerSheet extends StatelessWidget {
             child: products.isEmpty
                 ? const Center(child: Text('Không có sản phẩm nào'))
                 : ListView.builder(
-                    itemCount: products.length,
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      return ListTile(
-                        title: Text(product.name),
-                        subtitle: Text('Giá: ${product.price.toStringAsFixed(0)}${AppConstants.currencySymbol} - Tồn: ${product.quantity}'),
-                        trailing: const Icon(Icons.add),
-                        onTap: () {
-                          onSelect(product);
-                          Navigator.pop(context);
-                        },
-                      );
-                    },
-                  ),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return ListTile(
+                  title: Text(product.name),
+                  subtitle: Text('Giá: ${product.price.toStringAsFixed(0)}${AppConstants.currencySymbol} - Tồn: ${product.quantity}'),
+                  trailing: const Icon(Icons.add),
+                  onTap: () {
+                    onSelect(product);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
 }
-

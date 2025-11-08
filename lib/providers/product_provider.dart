@@ -83,6 +83,7 @@ class ProductProvider extends ChangeNotifier {
   }
 
   /// Lấy chi tiết một sản phẩm theo ID
+  /// Sử dụng String cho id
   Future<void> fetchProductById(String id) async {
     _isLoading = true;
     _errorMessage = null;
@@ -123,6 +124,7 @@ class ProductProvider extends ChangeNotifier {
   }
 
   /// Cập nhật sản phẩm
+  /// Sử dụng String cho id
   Future<bool> updateProduct(String id, Map<String, dynamic> productData) async {
     _isLoading = true;
     _errorMessage = null;
@@ -156,6 +158,7 @@ class ProductProvider extends ChangeNotifier {
   }
 
   /// Xóa sản phẩm
+  /// Sử dụng String cho id
   Future<bool> deleteProduct(String id) async {
     _isLoading = true;
     _errorMessage = null;

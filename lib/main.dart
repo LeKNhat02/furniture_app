@@ -7,6 +7,7 @@ import 'providers/sale_provider.dart';
 import 'providers/inventory_provider.dart';
 import 'providers/supplier_provider.dart';
 import 'providers/promotion_provider.dart';
+import 'providers/payment_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/main_layout.dart';
 
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => InventoryProvider()),
         ChangeNotifierProvider(create: (_) => SupplierProvider()),
         ChangeNotifierProvider(create: (_) => PromotionProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

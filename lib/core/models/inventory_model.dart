@@ -1,12 +1,12 @@
 class InventoryTransaction {
-  final String id;
-  final String productId;
+  final String id; // ✅ String (MySQL auto-increment ID)
+  final String productId; // ✅ String (MySQL foreign key)
   final String productName;
   final String type; // 'in' hoặc 'out'
   final int quantity;
   final String reason;
   final String? notes;
-  final String? supplierId;
+  final String? supplierId; // ✅ String? (MySQL foreign key)
   final DateTime date;
   final String? createdBy;
   final DateTime createdAt;
@@ -27,14 +27,16 @@ class InventoryTransaction {
 
   factory InventoryTransaction.fromJson(Map<String, dynamic> json) {
     return InventoryTransaction(
-      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
-      productId: json['product_id']?.toString() ?? '',
+      id: _parseString(json['id'] ?? json['_id']), // ✅ Convert to String
+      productId: _parseString(json['product_id'] ?? json['productId']), // ✅ Convert to String
       productName: json['product_name'] as String? ?? '',
       type: json['type'] as String? ?? 'in',
       quantity: json['quantity'] as int? ?? 0,
       reason: json['reason'] as String? ?? '',
       notes: json['notes'] as String?,
-      supplierId: json['supplier_id']?.toString(),
+      supplierId: json['supplier_id'] != null || json['supplierId'] != null
+          ? _parseString(json['supplier_id'] ?? json['supplierId'])
+          : null, // ✅ Convert to String?
       date: json['date'] != null
           ? DateTime.parse(json['date'].toString())
           : DateTime.now(),
@@ -45,9 +47,9 @@ class InventoryTransaction {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool includeId = false}) {
     return {
-      '_id': id,
+      if (includeId) 'id': id,
       'product_id': productId,
       'type': type,
       'quantity': quantity,
@@ -87,5 +89,26 @@ class InventoryTransaction {
       createdAt: createdAt ?? this.createdAt,
     );
   }
-}
 
+  @override
+  String toString() =>
+      'InventoryTransaction(id: $id, productId: $productId, type: $type, quantity: $quantity)';
+
+  /// Helper function để parse String an toàn
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is int) return value.toString();
+    if (value is double) return value.toString();
+    return value.toString();
+  }
+
+  /// Helper function để parse int an toàn
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is double) return value.toInt();
+    return 0;
+  }
+}
