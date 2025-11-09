@@ -42,7 +42,7 @@ class ApiService {
       ),
     );
 
-    // Thêm custom interceptor cho retry logic
+    // Thêm custom interceptor cho retry logic & token refresh
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
@@ -80,8 +80,9 @@ class ApiService {
         options: options,
       );
       return response;
-    } catch (e) {
+    } on DioException catch (e) {
       Logger.log('GET Error: $e');
+      _handleError(e);
       rethrow;
     }
   }
@@ -101,8 +102,9 @@ class ApiService {
         options: options,
       );
       return response;
-    } catch (e) {
+    } on DioException catch (e) {
       Logger.log('POST Error: $e');
+      _handleError(e);
       rethrow;
     }
   }
@@ -122,8 +124,9 @@ class ApiService {
         options: options,
       );
       return response;
-    } catch (e) {
+    } on DioException catch (e) {
       Logger.log('PUT Error: $e');
+      _handleError(e);
       rethrow;
     }
   }
@@ -143,8 +146,9 @@ class ApiService {
         options: options,
       );
       return response;
-    } catch (e) {
+    } on DioException catch (e) {
       Logger.log('PATCH Error: $e');
+      _handleError(e);
       rethrow;
     }
   }
@@ -162,24 +166,149 @@ class ApiService {
         options: options,
       );
       return response;
-    } catch (e) {
+    } on DioException catch (e) {
       Logger.log('DELETE Error: $e');
+      _handleError(e);
       rethrow;
     }
+  }
+
+  /// Upload file
+  Future<Response> uploadFile(
+      String path, {
+        required String filePath,
+        String? fileName,
+        Map<String, dynamic>? additionalData,
+      }) async {
+    try {
+      final file = await MultipartFile.fromFile(
+        filePath,
+        filename: fileName ?? filePath.split('/').last,
+      );
+
+      final formData = FormData.fromMap({
+        'file': file,
+        if (additionalData != null) ...additionalData,
+      });
+
+      final response = await _dio.post(
+        path,
+        data: formData,
+      );
+      return response;
+    } on DioException catch (e) {
+      Logger.log('Upload Error: $e');
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  /// Handle error
+  void _handleError(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+        Logger.log('Connection Timeout');
+        break;
+      case DioExceptionType.sendTimeout:
+        Logger.log('Send Timeout');
+        break;
+      case DioExceptionType.receiveTimeout:
+        Logger.log('Receive Timeout');
+        break;
+      case DioExceptionType.badResponse:
+        _handleBadResponse(error.response);
+        break;
+      case DioExceptionType.cancel:
+        Logger.log('Request Cancelled');
+        break;
+      case DioExceptionType.unknown:
+        Logger.log('Unknown Error: ${error.message}');
+        break;
+      default:
+        Logger.log('Error: ${error.message}');
+    }
+  }
+
+  /// Handle bad response
+  void _handleBadResponse(Response? response) {
+    if (response == null) return;
+
+    Logger.log('Bad Response: ${response.statusCode}');
+
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      if (data.containsKey('detail')) {
+        Logger.log('Error Detail: ${data['detail']}');
+      } else if (data.containsKey('message')) {
+        Logger.log('Error Message: ${data['message']}');
+      }
+    }
+  }
+
+  /// Get error message
+  static String getErrorMessage(dynamic error) {
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Timeout - Vui lòng kiểm tra kết nối internet';
+        case DioExceptionType.badResponse:
+          if (error.response?.statusCode == 401) {
+            return 'Phiên làm việc hết hạn - Vui lòng đăng nhập lại';
+          } else if (error.response?.statusCode == 403) {
+            return 'Bạn không có quyền truy cập';
+          } else if (error.response?.statusCode == 404) {
+            return 'Dữ liệu không tìm thấy';
+          } else if (error.response?.statusCode == 500) {
+            return 'Lỗi server - Vui lòng thử lại sau';
+          }
+          // Kiểm tra response body có message không
+          final data = error.response?.data;
+          if (data is Map<String, dynamic>) {
+            if (data.containsKey('detail')) {
+              return data['detail'];
+            } else if (data.containsKey('message')) {
+              return data['message'];
+            }
+          }
+          return 'Lỗi: ${error.response?.statusCode}';
+        case DioExceptionType.cancel:
+          return 'Yêu cầu bị hủy';
+        case DioExceptionType.unknown:
+          return 'Lỗi mạng - ${error.message}';
+        default:
+          return 'Đã xảy ra lỗi';
+      }
+    }
+    return error.toString();
   }
 
   /// Set authorization token
   void setToken(String token) {
     _dio.options.headers['Authorization'] = 'Bearer $token';
+    Logger.log('Token set');
   }
 
   /// Remove authorization token
   void removeToken() {
     _dio.options.headers.remove('Authorization');
+    Logger.log('Token removed');
   }
 
   /// Get current headers
   Map<String, dynamic> getHeaders() {
     return Map.from(_dio.options.headers);
+  }
+
+  /// Update base URL (runtime)
+  void updateBaseUrl(String newUrl) {
+    _dio.options.baseUrl = newUrl;
+    Logger.log('Base URL updated to: $newUrl');
+  }
+
+  /// Get current base URL
+  String getBaseUrl() {
+    return _dio.options.baseUrl;
   }
 }

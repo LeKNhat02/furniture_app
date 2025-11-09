@@ -2,9 +2,9 @@ import 'package:intl/intl.dart';
 
 class PaymentModel {
   final String id; // MySQL auto-increment ID (lưu dưới dạng String)
-  final int saleId; // MySQL foreign key
+  final String saleId; // MySQL foreign key (String)
   final String? saleName;
-  final int customerId; // MySQL foreign key
+  final String customerId; // MySQL foreign key (String)
   final String? customerName;
   final double amount;
   final String paymentMethod; // cash, transfer
@@ -39,9 +39,9 @@ class PaymentModel {
   factory PaymentModel.fromJson(Map<String, dynamic> json) {
     return PaymentModel(
       id: _parseString(json['id'] ?? json['_id']), // ✅ Convert to String
-      saleId: _parseInt(json['sale_id'] ?? json['saleId']),
+      saleId: _parseString(json['sale_id'] ?? json['saleId']), // ✅ Convert to String
       saleName: json['sale_name'] ?? json['saleName'],
-      customerId: _parseInt(json['customer_id'] ?? json['customerId']),
+      customerId: _parseString(json['customer_id'] ?? json['customerId']), // ✅ Convert to String
       customerName: json['customerName'] ?? json['customer_name'],
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       paymentMethod: json['paymentMethod'] ?? json['payment_method'] ?? 'cash',
@@ -86,9 +86,9 @@ class PaymentModel {
   /// Tạo copy với thay đổi
   PaymentModel copyWith({
     String? id,
-    int? saleId,
+    String? saleId,
     String? saleName,
-    int? customerId,
+    String? customerId,
     String? customerName,
     double? amount,
     String? paymentMethod,
@@ -193,14 +193,5 @@ class PaymentModel {
     if (value is int) return value.toString();
     if (value is double) return value.toString();
     return value.toString();
-  }
-
-  /// Helper function để parse int an toàn
-  static int _parseInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    if (value is double) return value.toInt();
-    return 0;
   }
 }

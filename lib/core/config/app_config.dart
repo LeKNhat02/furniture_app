@@ -1,4 +1,3 @@
-// lib/core/config/app_config.dart
 
 class AppConfig {
   // URL API cho các môi trường
