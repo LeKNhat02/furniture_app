@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/config/constants.dart';
@@ -86,6 +85,12 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Fill test credentials
+  void _fillTestCredentials(String username, String password) {
+    _usernameController.text = username;
+    _passwordController.text = password;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,9 +113,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Login Button
                 _buildLoginButton(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
-                // (Demo info removed)
+                // Test Credentials Box
+                _buildTestCredentialsBox(),
               ],
             ),
           ),
@@ -172,6 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _usernameController,
             validator: _validateUsername,
+            enabled: !_isLoading,
             decoration: InputDecoration(
               labelText: 'Username',
               hintText: 'Nhập username',
@@ -202,6 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _passwordController,
             validator: _validatePassword,
+            enabled: !_isLoading,
             obscureText: !_isPasswordVisible,
             decoration: InputDecoration(
               labelText: 'Password',
@@ -279,5 +287,112 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Demo info removed: use real backend credentials for testing.
+  // Test Credentials Box
+  Widget _buildTestCredentialsBox() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Tài Khoản Test (Admin)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Admin credentials
+          _buildCredentialItem(
+            icon: Icons.person,
+            label: 'Username:',
+            value: 'admin',
+            onTap: () => _fillTestCredentials('admin', '123456'),
+          ),
+          const SizedBox(height: 8),
+          _buildCredentialItem(
+            icon: Icons.lock,
+            label: 'Password:',
+            value: '123456',
+            onTap: () => _fillTestCredentials('admin', '123456'),
+          ),
+          const SizedBox(height: 12),
+
+          Text(
+            '(Nhấn để tự động điền)',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Credential item
+  Widget _buildCredentialItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontFamily: 'monospace',
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.copy,
+              size: 14,
+              color: AppColors.primary.withOpacity(0.6),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
